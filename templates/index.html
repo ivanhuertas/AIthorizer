@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorization Bot Results</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 20px; background-color: #f8f9fa; color: #343a40; }
+        h1 { color: #007bff; text-align: center; margin-bottom: 30px; }
+        .log-links { text-align: center; margin-bottom: 20px; }
+        .log-links a { margin: 0 10px; color: #007bff; text-decoration: none; font-weight: bold; }
+        .log-links a:hover { text-decoration: underline; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #ffffff; box-shadow: 0 0 15px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
+        th, td { border: 1px solid #e9ecef; padding: 12px 15px; text-align: left; vertical-align: top; }
+        th { background-color: #007bff; color: white; text-transform: uppercase; font-size: 0.9em; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        tr:hover { background-color: #e2f1ff; }
+        .bug { background-color: #f8d7da; } /* Light red */
+        .manual-inspection { background-color: #fff3cd; } /* Light yellow/orange */
+        .severity-critical { color: #dc3545; font-weight: bold; } /* Red */
+        .severity-high { color: #fd7e14; font-weight: bold; } /* Darker Orange */
+        .severity-medium { color: #ffc107; } /* Orange */
+        .severity-low, .severity-info, .severity-n-a { color: #6c757d; } /* Gray */
+
+        /* NEW: Styles for fixed-width, scrollable endpoint column */
+        .endpoint-cell {
+            max-width: 350px; /* Adjust as needed */
+            white-space: nowrap; /* Keep text on single line */
+            overflow-x: auto; /* Add horizontal scrollbar */
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; /* Monospace for URLs */
+            font-size: 0.85em;
+        }
+        /* Style for the scrollbar thumb and track */
+        .endpoint-cell::-webkit-scrollbar {
+            height: 5px; /* Adjust thickness */
+        }
+        .endpoint-cell::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .endpoint-cell::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .endpoint-cell::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+
+        .toggle-content {
+            cursor: pointer;
+            text-decoration: underline;
+            color: #007bff;
+            font-size: 0.9em;
+        }
+        .hidden-content {
+            display: none;
+            white-space: pre-wrap; /* Preserve line breaks */
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 8px;
+            max-height: 300px; /* Limit height for long content */
+            overflow-y: auto; /* Add scroll for overflow */
+            word-break: break-all; /* Break long words */
+        }
+    </style>
+    <script>
+        function toggleVisibility(id) {
+            var element = document.getElementById(id);
+            if (element.style.display === "none" || element.style.display === "") {
+                element.style.display = "block";
+            } else {
+                element.style.display = "none";
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Authorization Bot Analysis Results</h1>
+
+    <div class="log-links">
+        Download Logs:
+        <a href="/logs/comparison_log.csv" download>Raw CSV Log</a> |
+        <a href="/logs/llm_analysis_log.jsonl" download>Raw LLM JSONL Log</a>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Method</th>
+                <th>Endpoint</th>
+                <th>Assessment</th>
+                <th>Severity</th>
+                <th>Reasoning</th>
+                <th>Recommendation</th>
+                <th>Bug?</th>
+                <th>Manual Inspect?</th>
+                <th>Raw LLM Output</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in results %}
+            <tr class="{% if result.is_bug %}bug{% elif result.requires_manual_inspection %}manual-inspection{% endif %}">
+                <td>{{ result.timestamp }}</td>
+                <td>{{ result.method }}</td>
+                <td class="endpoint-cell">{{ result.endpoint }}</td> {# <--- Apply new class here #}
+                <td>{{ result.assessment }}</td>
+                <td class="severity-{{ result.severity | lower }}">{{ result.severity }}</td> {# <--- Use lowercase severity for class #}
+                <td>{{ result.reasoning }}</td>
+                <td>{{ result.recommendation }}</td>
+                <td>{{ 'Yes' if result.is_bug else 'No' }}</td>
+                <td>{{ 'Yes' if result.requires_manual_inspection else 'No' }}</td>
+                <td>
+                    <span class="toggle-content" onclick="toggleVisibility('raw-{{ loop.index }}')">Show/Hide Raw</span>
+                    <div id="raw-{{ loop.index }}" class="hidden-content">
+                        {{ result.raw_llm_output }}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="10" style="text-align: center; padding: 20px;">No LLM analysis results available yet. Start the mitmproxy bot and browse your application!</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
